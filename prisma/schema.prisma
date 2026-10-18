@@ -1,0 +1,132 @@
+// Prisma ORM 7
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum DocumentStatus {
+  RECEIVED
+  UNDER_REVIEW
+  NEEDS_CORRECTION
+  VERIFIED
+}
+
+enum DocumentBatchStatus {
+  RECEIVED
+  IN_REVIEW
+  COMPLETED
+}
+
+model Sector {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  auditLogs       AuditLog[]
+  documentBatches DocumentBatch[]
+  documents       Document[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(OPERATOR)
+  active       Boolean  @default(true)
+  sectorId     String
+  sector       Sector   @relation(fields: [sectorId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs         AuditLog[]
+  uploadedBatches   DocumentBatch[] @relation("DocumentBatchCreatedBy")
+  uploadedDocuments Document[]      @relation("DocumentUploadedBy")
+  reviewedDocuments Document[]      @relation("DocumentReviewedBy")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+}
+
+model DocumentBatch {
+  id        String              @id @default(cuid())
+  name      String?
+  status    DocumentBatchStatus @default(RECEIVED)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  createdByUserId String
+  createdBy       User   @relation("DocumentBatchCreatedBy", fields: [createdByUserId], references: [id])
+
+  documents Document[]
+
+  @@index([sectorId, createdAt])
+  @@index([createdByUserId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  originalName String
+  storageKey   String         @unique
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  status       DocumentStatus @default(RECEIVED)
+
+  duplicateReviewRequired Boolean @default(false)
+
+  receivedAt  DateTime  @default(now())
+  reviewedAt  DateTime?
+  reviewNotes String?
+
+  batchId String?
+  batch   DocumentBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  sectorId String
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  uploadedByUserId String
+  uploadedBy       User   @relation("DocumentUploadedBy", fields: [uploadedByUserId], references: [id])
+
+  reviewedByUserId String?
+  reviewedBy       User?   @relation("DocumentReviewedBy", fields: [reviewedByUserId], references: [id])
+
+  @@index([sectorId, receivedAt])
+  @@index([sectorId, sha256])
+  @@index([status, receivedAt])
+  @@index([uploadedByUserId, receivedAt])
+  @@index([reviewedByUserId, reviewedAt])
+}
