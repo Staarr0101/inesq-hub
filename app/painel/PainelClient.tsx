@@ -675,10 +675,89 @@ useEffect(() => {
                   </div>
 
                   <span className="w-fit rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-[#17438A]">
-                    Prévia da interface
+                    Recebimento de documentos
                   </span>
                 </div>
               </div>
+
+              {/* Documentos já registrados no sistema */}
+              <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#172B4D]">
+                      Documentos recebidos
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Arquivos enviados e registrados no sistema.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void carregarDocumentos()}
+                    disabled={carregandoDocumentos}
+                    className="w-fit rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-[#17438A] hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {carregandoDocumentos ? "Atualizando..." : "Atualizar lista"}
+                  </button>
+                </div>
+
+                {carregandoDocumentos ? (
+                  <p className="px-5 py-6 text-sm text-slate-500">
+                    Carregando documentos...
+                  </p>
+                ) : erroDocumentos ? (
+                  <div className="px-5 py-6">
+                    <p role="alert" className="text-sm text-red-600">
+                      {erroDocumentos}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void carregarDocumentos()}
+                      className="mt-3 text-sm font-semibold text-[#17438A] hover:underline"
+                    >
+                      Tentar novamente
+                    </button>
+                  </div>
+                ) : documentosRecentes.length === 0 ? (
+                  <p className="px-5 py-6 text-sm text-slate-500">
+                    Nenhum documento registrado ainda.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {documentosRecentes.map((documento) => (
+                      <div
+                        key={documento.id}
+                        className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="break-words text-sm font-medium text-[#172B4D]">
+                            {documento.originalName}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {(documento.sizeBytes / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-1 sm:items-end">
+                          <span className="text-xs text-slate-500">
+                            {new Date(documento.receivedAt).toLocaleString("pt-BR")}
+                          </span>
+                          <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#17438A]">
+                            {documento.status === "RECEIVED"
+                              ? "Recebido"
+                              : documento.status === "UNDER_REVIEW"
+                                ? "Em conferência"
+                                : documento.status === "NEEDS_CORRECTION"
+                                  ? "Precisa de correção"
+                                  : "Verificado"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
               {/* Etapas planejadas */}
               <div className="grid gap-3 sm:grid-cols-3">
@@ -795,9 +874,9 @@ useEffect(() => {
                   />
                 </label>
 
-                <p className="mt-3 text-xs leading-5 text-slate-400">
-                  Nesta prévia, os arquivos ficam apenas na memória da página.
-                  Eles não são enviados nem salvos no sistema.
+                 <p className="mt-3 text-xs leading-5 text-slate-500">
+                Os arquivos selecionados serão enviados ao sistema e registrados
+                para consulta na lista de documentos recebidos.
                 </p>
               </div>
 

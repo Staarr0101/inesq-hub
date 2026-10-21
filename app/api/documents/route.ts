@@ -1,18 +1,19 @@
-﻿import { NextResponse } from "next/server";
+﻿
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
 export async function GET() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "Sua sessão expirou. Entre novamente." },
+      { status: 401 }
+    );
+  }
+
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Sua sessão expirou. Entre novamente." },
-        { status: 401 }
-      );
-    }
-
     const documents = await prisma.document.findMany({
       where: {
         sectorId: user.sectorId,
@@ -31,7 +32,14 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ documents });
+    return NextResponse.json(
+      { documents },
+      {
+        headers: {
+          "Cache-Control": "private, no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Erro ao consultar documentos:", error);
 
